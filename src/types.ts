@@ -106,6 +106,8 @@ export type CategoryDto = Tables<'categories'>;
 export type ListCategoriesQuery = {
   active?: boolean; // default true
   sort?: CategorySort; // default 'name_asc'
+  limit?: number; // default 20, max 100
+  offset?: number; // default 0
 };
 
 export type ListCategoriesResponseDto = PaginatedResponse<CategoryDto>;

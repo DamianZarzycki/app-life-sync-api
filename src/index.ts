@@ -3,8 +3,10 @@ import express from 'express';
 import cors from 'cors';
 import { supabaseMiddleware } from './middleware/supabase.middleware.js';
 import authRouter from './routes/auth.router.js';
+import profileRouter from './routes/profile.router.js';
 import preferencesRouter from './routes/preferences.router.js';
 import notesRouter from './routes/notes.router.js';
+import categoriesRouter from './routes/categories.router.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,8 +18,10 @@ app.use(supabaseMiddleware);
 
 // Routes
 app.use('/api', authRouter);
+app.use('/api/profile', profileRouter);
 app.use('/api/preferences', preferencesRouter);
 app.use('/api/notes', notesRouter);
+app.use('/api/categories', categoriesRouter);
 
 // Health check route
 app.get('/api/health', (req, res) => {

@@ -139,3 +139,62 @@ export const updatePreferencesHandler = async (req: Request, res: Response): Pro
     res.status(500).json(errorResponse);
   }
 };
+
+/**
+ * Handler for GET /api/preferences
+ * Retrieves current user's preferences
+ *
+ * @param req - Express request with authenticated user
+ * @param res - Express response object
+ * @returns 200 OK with PreferencesDto on success, error response otherwise
+ */
+export const getPreferencesHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Step 1: Verify authentication
+    if (!req.auth) {
+      const errorResponse: ErrorResponseDto = {
+        error: {
+          code: 'JWT_INVALID',
+          message: 'Invalid credentials',
+        },
+      };
+      res.status(401).json(errorResponse);
+      return;
+    }
+
+    // Step 2: Create user-scoped Supabase client for RLS enforcement
+    const supabaseUrl = process.env.SUPABASE_URL as string;
+    const userClient = createClient<Database>(supabaseUrl, req.auth.jwt);
+
+    // Step 3: Initialize service and call get
+    const preferencesService = new PreferencesService(userClient);
+    const preferences = await preferencesService.getPreferences(req.auth.userId);
+
+    // Step 4: Return success response
+    res.status(200).json(preferences);
+  } catch (err) {
+    // Handle PreferencesNotFoundError (404)
+    if (err instanceof PreferencesNotFoundError) {
+      const errorResponse: ErrorResponseDto = {
+        error: {
+          code: 'PREFERENCES_NOT_FOUND',
+          message: 'User preferences not found',
+        },
+      };
+      res.status(404).json(errorResponse);
+      return;
+    }
+
+    // Log unexpected errors for debugging
+    console.error('Preferences get handler error', err);
+
+    // Return generic server error (500)
+    const errorResponse: ErrorResponseDto = {
+      error: {
+        code: 'SERVER_ERROR',
+        message: 'Unexpected server error',
+      },
+    };
+    res.status(500).json(errorResponse);
+  }
+};
