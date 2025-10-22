@@ -111,4 +111,35 @@ export class PreferencesService {
 
     return updatedPreference as PreferencesDto;
   }
+
+  /**
+   * Retrieve user preferences from the database
+   * @param userId - UUID of the user
+   * @returns PreferencesDto with user's preferences
+   * @throws PreferencesNotFoundError if preferences record doesn't exist
+   * @throws Error for database or unexpected errors
+   */
+  async getPreferences(userId: UUID): Promise<PreferencesDto> {
+    // Execute query with user's scoped client (enforces RLS)
+    const { data: preferences, error } = await this.userClient
+      .from('preferences')
+      .select()
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      // Distinguish between not found and other errors
+      // PGRST116 is Supabase's error code for "no rows returned"
+      if (error.code === 'PGRST116') {
+        throw new PreferencesNotFoundError(userId);
+      }
+      throw new Error(`Failed to retrieve preferences: ${error.message}`);
+    }
+
+    if (!preferences) {
+      throw new PreferencesNotFoundError(userId);
+    }
+
+    return preferences as PreferencesDto;
+  }
 }
