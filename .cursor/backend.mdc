@@ -1,0 +1,35 @@
+# AI Rules for LifySync
+
+**LifeSync** is a web application that helps users conduct structured weekly reflections on key areas of life.  
+It allows note-taking in six categories (**Family**, **Friends**, **Pets**, **Body**, **Mind**, **Passions**),  
+generates personalized summaries and recommendations through an **AI assistant**, archives entries,  
+and supports users in maintaining life balance.
+
+
+## DATABASE
+
+### Guidelines for SQL
+
+#### POSTGRES
+
+- Use connection pooling to manage database connections efficiently
+- Implement JSONB columns for semi-structured data instead of creating many tables for {{flexible_data}}
+- Use materialized views for complex, frequently accessed read-only data
+
+## BACKEND
+
+- You are connecting with Supabase instance.
+- Follow Supabase guidelines for security and performance.
+- Use Zod schemas to validate data echange with backend.
+
+### Guidelines for NODE
+
+#### EXPRESS
+
+- Use express-async-errors or wrap async route handlers in try/catch blocks to properly handle promise rejections and prevent server crashes
+- Implement middleware for cross-cutting concerns like logging, error handling, and authentication following the chain-of-responsibility pattern
+- Use helmet middleware to enhance API security with appropriate HTTP headers for {{security_requirements}}
+- Structure routes using the Router class and organize by resource or feature to maintain a clean separation of concerns
+- Implement rate limiting for public endpoints to prevent abuse and DoS attacks on {{critical_endpoints}}
+- Use environment-specific configuration with dotenv and never hardcode sensitive values like {{database_credentials}} or API keys
+
