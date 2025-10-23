@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { listNotesHandler, createNoteHandler, getNoteHandler } from '../controllers/notes.controller.js';
+import { listNotesHandler, createNoteHandler, getNoteHandler, deleteNoteHandler } from '../controllers/notes.controller.js';
 
 const router = Router();
 
@@ -30,6 +30,15 @@ router.get('/:id', authMiddleware, (req: Request, res: Response, next: NextFunct
  */
 router.post('/', authMiddleware, (req: Request, res: Response, next: NextFunction) =>
   createNoteHandler(req, res, next)
+);
+
+/**
+ * DELETE /api/notes/{id}
+ * Soft-delete a note for the authenticated user
+ * Requires: Authorization header with Bearer token
+ */
+router.delete('/:id', authMiddleware, (req: Request, res: Response, next: NextFunction) =>
+  deleteNoteHandler(req, res, next)
 );
 
 export default router;
