@@ -108,3 +108,17 @@ export const CreateNoteCommandSchema = z.object({
 });
 
 export type CreateNoteCommand = z.infer<typeof CreateNoteCommandSchema>;
+
+/**
+ * Schema for validating GET /api/notes/{id} path parameter
+ * 
+ * Validates:
+ * - id: required UUID of the note to retrieve
+ */
+export const GetNoteParamSchema = z.object({
+  id: z
+    .string({ required_error: 'Note ID is required' })
+    .uuid('Note ID must be a valid UUID'),
+});
+
+export type GetNoteParam = z.infer<typeof GetNoteParamSchema>;

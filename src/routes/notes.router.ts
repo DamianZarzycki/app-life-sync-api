@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { listNotesHandler, createNoteHandler } from '../controllers/notes.controller.js';
+import { listNotesHandler, createNoteHandler, getNoteHandler } from '../controllers/notes.controller.js';
 
 const router = Router();
 
@@ -12,6 +12,15 @@ const router = Router();
  */
 router.get('/', authMiddleware, (req: Request, res: Response, next: NextFunction) =>
   listNotesHandler(req, res, next)
+);
+
+/**
+ * GET /api/notes/{id}
+ * Retrieves a single note by ID for the authenticated user (owner only)
+ * Requires: Authorization header with Bearer token
+ */
+router.get('/:id', authMiddleware, (req: Request, res: Response, next: NextFunction) =>
+  getNoteHandler(req, res, next)
 );
 
 /**

@@ -46,6 +46,16 @@ export class CategoryNotFoundError extends Error {
 }
 
 /**
+ * Custom error for when a note is not found
+ */
+export class NoteNotFoundError extends Error {
+  constructor(public noteId: UUID) {
+    super(`Note ${noteId} not found`);
+    this.name = 'NoteNotFoundError';
+  }
+}
+
+/**
  * NotesService handles notes operations
  * Manages listing, filtering, creating notes with business rule enforcement
  */
@@ -260,6 +270,41 @@ export class NotesService {
     }
 
     return createdNote as NoteDto;
+  }
+
+  /**
+   * Retrieve a single note by ID for the authenticated user
+   * 
+   * Enforces ownership through user-scoped client (RLS)
+   * Excludes soft-deleted notes by default
+   * 
+   * @param userId - UUID of the authenticated user
+   * @param noteId - UUID of the note to retrieve
+   * @returns NoteDto if note exists and user owns it
+   * @throws NoteNotFoundError if note doesn't exist or user doesn't own it
+   * @throws Error for unexpected database errors
+   */
+  async getNoteById(userId: UUID, noteId: UUID): Promise<NoteDto> {
+    const { data: note, error } = await this.userClient
+      .from('notes')
+      .select('*')
+      .eq('id', noteId)
+      .is('deleted_at', null)
+      .single();
+
+    if (error) {
+      // PGRST116 is Supabase's error code for "no rows returned"
+      if (error.code === 'PGRST116') {
+        throw new NoteNotFoundError(noteId);
+      }
+      throw new Error(`Failed to retrieve note: ${error.message}`);
+    }
+
+    if (!note) {
+      throw new NoteNotFoundError(noteId);
+    }
+
+    return note as NoteDto;
   }
 
   /**

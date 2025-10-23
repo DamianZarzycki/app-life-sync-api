@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { ListNotesQuerySchema, CreateNoteCommandSchema } from '../validation/notes.js';
+import { ListNotesQuerySchema, CreateNoteCommandSchema, GetNoteParamSchema } from '../validation/notes.js';
 import type { Database } from '../db/database.types.js';
-import { NotesService, CategoryNotActiveError, DailyLimitExceededError, CategoryNotFoundError } from '../services/notes.service.js';
+import { NotesService, CategoryNotActiveError, DailyLimitExceededError, CategoryNotFoundError, NoteNotFoundError } from '../services/notes.service.js';
 import { z } from 'zod';
 
 const supabaseUrl = process.env.SUPABASE_URL as string;
@@ -206,6 +206,90 @@ export const createNoteHandler = async (
 
     // Generic error handling
     console.error('createNoteHandler error:', err);
+    res.status(500).json({
+      error: { code: 'SERVER_ERROR', message: 'An unexpected error occurred' },
+    });
+  }
+};
+
+/**
+ * GET /api/notes/{id}
+ * Retrieves a single note by ID for the authenticated user (owner only)
+ *
+ * Path Parameters:
+ * - id: required UUID of the note to retrieve
+ *
+ * Success Response:
+ * - 200 OK: Full NoteDto
+ *
+ * Error Responses:
+ * - 400: Invalid UUID format
+ * - 401: Missing/invalid authentication
+ * - 404: Note not found or user doesn't own it
+ * - 500: Server error
+ */
+export const getNoteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // 1. Ensure authenticated
+    if (!req.auth) {
+      res.status(401).json({
+        error: { code: 'JWT_INVALID', message: 'Invalid credentials' },
+      });
+      return;
+    }
+
+    // 2. Validate path parameter
+    let validatedParam;
+    try {
+      validatedParam = GetNoteParamSchema.parse(req.params);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        const details = Object.fromEntries(
+          validationError.errors.map((err) => [err.path.join('.'), err.message])
+        );
+        res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid note ID format',
+            details,
+          },
+        });
+        return;
+      }
+      throw validationError;
+    }
+
+    const userId = req.auth.userId;
+    const noteId = validatedParam.id;
+    const jwt = req.auth.jwt;
+
+    // 3. Create user-scoped client with JWT for RLS enforcement
+    const userClient = createClient<Database>(supabaseUrl, jwt);
+    const notesService = new NotesService(userClient);
+
+    // 4. Call service to retrieve note
+    const note = await notesService.getNoteById(userId, noteId);
+
+    // 5. Return note
+    res.status(200).json(note);
+  } catch (err) {
+    // Handle specific service errors with appropriate HTTP status codes
+    if (err instanceof NoteNotFoundError) {
+      res.status(404).json({
+        error: {
+          code: 'NOTE_NOT_FOUND',
+          message: 'Note not found',
+        },
+      });
+      return;
+    }
+
+    // Generic error handling
+    console.error('getNoteHandler error:', err);
     res.status(500).json({
       error: { code: 'SERVER_ERROR', message: 'An unexpected error occurred' },
     });
