@@ -295,3 +295,88 @@ export const getNoteHandler = async (
     });
   }
 };
+
+/**
+ * DELETE /api/notes/{id}
+ * Soft-delete a note for the authenticated user
+ *
+ * Path Parameters:
+ * - id: required UUID of the note to delete
+ *
+ * Success Response:
+ * - 204 No Content
+ *
+ * Error Responses:
+ * - 400: Invalid UUID format
+ * - 401: Missing/invalid authentication
+ * - 404: Note not found or user doesn't own it
+ * - 500: Server error
+ */
+export const deleteNoteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // 1. Ensure authenticated
+    if (!req.auth) {
+      res.status(401).json({
+        error: { code: 'JWT_INVALID', message: 'Invalid credentials' },
+      });
+      return;
+    }
+
+    // 2. Validate path parameter
+    let validatedParam;
+    try {
+      validatedParam = GetNoteParamSchema.parse(req.params);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        const details = Object.fromEntries(
+          validationError.errors.map((err) => [err.path.join('.'), err.message])
+        );
+        res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid note ID format',
+            details,
+          },
+        });
+        return;
+      }
+      throw validationError;
+    }
+
+    const userId = req.auth.userId;
+    const noteId = validatedParam.id;
+    const jwt = req.auth.jwt;
+    console.log('noteId:: ', noteId);
+    console.log('userId:: ', userId);
+    // 3. Create user-scoped client with JWT for RLS enforcement
+    const userClient = createClient<Database>(supabaseUrl, jwt);
+    const notesService = new NotesService(userClient);
+    console.log('notesService:: ', await notesService.listNotes(userId, { limit: 10, offset: 0 }));
+    // 4. Delete note through service
+    await notesService.deleteNoteById(userId, noteId);
+
+    // 5. Return 204 No Content
+    res.status(204).send();
+  } catch (err) {
+    // Handle specific service errors with appropriate HTTP status codes
+    if (err instanceof NoteNotFoundError) {
+      res.status(404).json({
+        error: {
+          code: 'NOTE_NOT_FOUND',
+          message: 'Note not found',
+        },
+      });
+      return;
+    }
+
+    // Generic error handling
+    console.error('deleteNoteHandler error:', err);
+    res.status(500).json({
+      error: { code: 'SERVER_ERROR', message: 'An unexpected error occurred' },
+    });
+  }
+};
