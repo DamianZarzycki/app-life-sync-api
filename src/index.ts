@@ -8,6 +8,8 @@ import preferencesRouter from './routes/preferences.router.js';
 import notesRouter from './routes/notes.router.js';
 import categoriesRouter from './routes/categories.router.js';
 import reportsRouter from './routes/reports.router.js';
+import reportDeliveriesRouter from './routes/report-deliveries.router.js';
+import feedbackRouter from './routes/feedback.router.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +26,8 @@ app.use('/api/preferences', preferencesRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/report-deliveries', reportDeliveriesRouter);
+app.use('/api/feedback', feedbackRouter);
 
 // Health check route
 app.get('/api/health', (req, res) => {
