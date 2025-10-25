@@ -7,6 +7,7 @@ import profileRouter from './routes/profile.router.js';
 import preferencesRouter from './routes/preferences.router.js';
 import notesRouter from './routes/notes.router.js';
 import categoriesRouter from './routes/categories.router.js';
+import reportsRouter from './routes/reports.router.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.use('/api/profile', profileRouter);
 app.use('/api/preferences', preferencesRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/categories', categoriesRouter);
+app.use('/api/reports', reportsRouter);
 
 // Health check route
 app.get('/api/health', (req, res) => {

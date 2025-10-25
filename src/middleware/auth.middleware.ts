@@ -72,11 +72,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
     // Production mode: strict JWT validation required
     if (!authHeader) {
-      return res
-        .status(401)
-        .json({
-          error: { code: 'AUTH_HEADER_MISSING', message: 'Authorization header is required' },
-        });
+      return res.status(401).json({
+        error: { code: 'AUTH_HEADER_MISSING', message: 'Authorization header is required' },
+      });
     }
 
     // Validate header presence & format

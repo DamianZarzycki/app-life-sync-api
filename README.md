@@ -47,15 +47,15 @@ Server będzie dostępny pod adresem `http://localhost:3000`
 
 ## Skrypty
 
-| Skrypt | Opis |
-|--------|------|
-| `npm run dev` | Uruchomienie serwera w trybie development z hot-reload |
-| `npm run build` | Kompilacja TypeScript do JavaScript |
-| `npm start` | Uruchomienie skompilowanego serwera |
-| `npm run lint` | Sprawdzenie kodu ESLint |
-| `npm run lint:fix` | Naprawienie problemów ESLint |
-| `npm run format` | Formatowanie kodu Prettier |
-| `npm run format:check` | Sprawdzenie formatowania |
+| Skrypt                 | Opis                                                   |
+| ---------------------- | ------------------------------------------------------ |
+| `npm run dev`          | Uruchomienie serwera w trybie development z hot-reload |
+| `npm run build`        | Kompilacja TypeScript do JavaScript                    |
+| `npm start`            | Uruchomienie skompilowanego serwera                    |
+| `npm run lint`         | Sprawdzenie kodu ESLint                                |
+| `npm run lint:fix`     | Naprawienie problemów ESLint                           |
+| `npm run format`       | Formatowanie kodu Prettier                             |
+| `npm run format:check` | Sprawdzenie formatowania                               |
 
 ## Struktura projektu
 
@@ -85,6 +85,7 @@ GET /api/health
 Zwraca status serwera.
 
 **Odpowiedź:**
+
 ```json
 {
   "status": "ok",
@@ -101,6 +102,7 @@ GET /api/test
 Testuje połączenie z bazą danych.
 
 **Odpowiedź:**
+
 ```json
 {
   "status": "ok",
@@ -117,12 +119,10 @@ Wszystkie route'y automatycznie mają dostęp do klienta Supabase przez `req.sup
 ```typescript
 app.get('/api/example', async (req, res) => {
   try {
-    const { data, error } = await req.supabase
-      .from('table_name')
-      .select('*');
-    
+    const { data, error } = await req.supabase.from('table_name').select('*');
+
     if (error) throw error;
-    
+
     res.json({ data });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
@@ -175,4 +175,3 @@ Sprawdź czy port 3000 jest dostępny lub ustaw inny port w zmiennej `PORT`.
 ## Licencja
 
 ISC
-

@@ -481,7 +481,7 @@ export const updateNoteHandler = async (
           code: 'VALIDATION_ERROR',
           message: 'At least one field must be provided for update',
           details: {
-            body: 'Provide at least one of: category_id, title, or content'
+            body: 'Provide at least one of: category_id, title, or content',
           },
         },
       };

@@ -145,19 +145,19 @@ export type UpdateNoteParam = z.infer<typeof UpdateNoteParamSchema>;
  * All fields optional for partial update operations
  */
 export const UpdateNoteCommandSchema = z.object({
-  category_id: z
-    .string()
-    .uuid('category_id must be a valid UUID')
-    .optional(),
+  category_id: z.string().uuid('category_id must be a valid UUID').optional(),
 
   title: z
     .string()
     .max(255, { message: 'title must not exceed 255 characters' })
     .nullable()
     .optional()
-    .refine((val) => val === null || val === undefined || (typeof val === 'string' && val.length <= 255), {
-      message: 'title must be null or a string with max 255 characters',
-    }),
+    .refine(
+      (val) => val === null || val === undefined || (typeof val === 'string' && val.length <= 255),
+      {
+        message: 'title must be null or a string with max 255 characters',
+      }
+    ),
 
   content: z
     .string()

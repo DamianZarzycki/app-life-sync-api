@@ -1,6 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { listNotesHandler, createNoteHandler, getNoteHandler, deleteNoteHandler, updateNoteHandler } from '../controllers/notes.controller.js';
+import {
+  listNotesHandler,
+  createNoteHandler,
+  getNoteHandler,
+  deleteNoteHandler,
+  updateNoteHandler,
+} from '../controllers/notes.controller.js';
 
 const router = Router();
 
