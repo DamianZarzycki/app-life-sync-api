@@ -31,10 +31,7 @@ app.get('/api/health', (req, res) => {
 // Example route with Supabase
 app.get('/api/test', async (req, res) => {
   try {
-    const { data, error } = await req.supabase
-      .from('profiles')
-      .select('*')
-      .limit(1);
+    const { data, error } = await req.supabase.from('profiles').select('*').limit(1);
 
     if (error) throw error;
 
@@ -53,4 +50,3 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Server WEWEWE running on http://localhost:${PORT}`);
 });
-

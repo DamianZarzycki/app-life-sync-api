@@ -1,4 +1,11 @@
-import type { Database, Tables, TablesInsert, TablesUpdate, Enums, Json } from './db/database.types';
+import type {
+  Database,
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Enums,
+  Json,
+} from './db/database.types';
 
 // Alias for UUIDs as strings (Supabase exposes UUIDs as strings in generated types)
 export type UUID = string;
@@ -149,10 +156,7 @@ export type DashboardSummaryDto = {
   streak_days: number;
 };
 
-export type RecentReportDto = Pick<
-  Tables<'reports'>,
-  'id' | 'generated_by' | 'created_at'
->;
+export type RecentReportDto = Pick<Tables<'reports'>, 'id' | 'generated_by' | 'created_at'>;
 
 export type DashboardDto = {
   summary: DashboardSummaryDto;
@@ -219,10 +223,7 @@ export type SubmitFeedbackCommand = Pick<
 export type AnalyticsEventDto = Tables<'analytics_events'>;
 
 // Client-side command excludes server-owned fields
-export type RecordAnalyticsEventCommand = Omit<
-  TablesInsert<'analytics_events'>,
-  'user_id'
-> & {
+export type RecordAnalyticsEventCommand = Omit<TablesInsert<'analytics_events'>, 'user_id'> & {
   source: 'web' | 'api';
 };
 
@@ -237,5 +238,3 @@ export type ListAnalyticsEventsQuery = {
 export type AnalyticsEventsListResponseDto = PaginatedResponse<AnalyticsEventDto>;
 
 export type AnalyticsEventResponseDto = Pick<AnalyticsEventDto, 'id'>;
-
-

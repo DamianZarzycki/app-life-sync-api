@@ -74,7 +74,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     if (!authHeader) {
       return res
         .status(401)
-        .json({ error: { code: 'AUTH_HEADER_MISSING', message: 'Authorization header is required' } });
+        .json({
+          error: { code: 'AUTH_HEADER_MISSING', message: 'Authorization header is required' },
+        });
     }
 
     // Validate header presence & format
@@ -96,7 +98,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     } = await adminClient.auth.getUser(jwt);
 
     if (error || !user) {
-      return res.status(401).json({ error: { code: 'JWT_INVALID', message: 'Invalid credentials' } });
+      return res
+        .status(401)
+        .json({ error: { code: 'JWT_INVALID', message: 'Invalid credentials' } });
     }
 
     req.auth = {
@@ -110,11 +114,15 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
   } catch (err) {
     if (err instanceof Error) {
       if (err.name === 'ZodError') {
-        return res.status(401).json({ error: { code: 'AUTH_HEADER_INVALID', message: err.message } });
+        return res
+          .status(401)
+          .json({ error: { code: 'AUTH_HEADER_INVALID', message: err.message } });
       }
     }
 
     console.error('Auth middleware error', err);
-    return res.status(500).json({ error: { code: 'SERVER_ERROR', message: 'Unexpected authentication error' } });
+    return res
+      .status(500)
+      .json({ error: { code: 'SERVER_ERROR', message: 'Unexpected authentication error' } });
   }
 };

@@ -5,12 +5,7 @@ export interface RequestWithSupabase extends Request {
   supabase: typeof supabaseClient;
 }
 
-export const supabaseMiddleware = (
-  req: RequestWithSupabase,
-  res: Response,
-  next: NextFunction
-) => {
+export const supabaseMiddleware = (req: RequestWithSupabase, res: Response, next: NextFunction) => {
   req.supabase = supabaseClient;
   next();
 };
-

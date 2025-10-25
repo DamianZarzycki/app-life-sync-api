@@ -38,9 +38,11 @@ export const signInHandler = async (req: Request, res: Response) => {
     // Supabase returns status 400 for both "user not found" and "wrong password"
     if (err instanceof Error) {
       const errorMessage = err.message.toLowerCase();
-      if (errorMessage.includes('invalid login credentials') || 
-          errorMessage.includes('user not found') || 
-          errorMessage.includes('invalid password')) {
+      if (
+        errorMessage.includes('invalid login credentials') ||
+        errorMessage.includes('user not found') ||
+        errorMessage.includes('invalid password')
+      ) {
         console.log(`Sign-in failed for email: ${req.body.email}`);
         return res.status(401).json({
           error: {
@@ -72,6 +74,8 @@ export const getMeHandler = async (req: Request, res: Response) => {
     return res.status(200).json(dto);
   } catch (err) {
     console.error('getMeHandler error', err);
-    return res.status(500).json({ error: { code: 'SERVER_ERROR', message: 'Unexpected server error' } });
+    return res
+      .status(500)
+      .json({ error: { code: 'SERVER_ERROR', message: 'Unexpected server error' } });
   }
 };

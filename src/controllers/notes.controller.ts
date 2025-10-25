@@ -1,8 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { ListNotesQuerySchema, CreateNoteCommandSchema, GetNoteParamSchema } from '../validation/notes.js';
+import {
+  ListNotesQuerySchema,
+  CreateNoteCommandSchema,
+  GetNoteParamSchema,
+  UpdateNoteParamSchema,
+  UpdateNoteCommandSchema,
+} from '../validation/notes.js';
 import type { Database } from '../db/database.types.js';
-import { NotesService, CategoryNotActiveError, DailyLimitExceededError, CategoryNotFoundError, NoteNotFoundError } from '../services/notes.service.js';
+import {
+  NotesService,
+  CategoryNotActiveError,
+  DailyLimitExceededError,
+  CategoryNotFoundError,
+  NoteNotFoundError,
+} from '../services/notes.service.js';
+import type { ErrorResponseDto } from '../types.js';
 import { z } from 'zod';
 
 const supabaseUrl = process.env.SUPABASE_URL as string;
@@ -161,9 +174,7 @@ export const createNoteHandler = async (
     const createdNote = await notesService.createNote(userId, validatedBody);
 
     // 5. Return created note with 201 Created and Location header
-    res.status(201)
-      .set('Location', `/api/notes/${createdNote.id}`)
-      .json(createdNote);
+    res.status(201).set('Location', `/api/notes/${createdNote.id}`).json(createdNote);
   } catch (err) {
     // Handle specific service errors with appropriate HTTP status codes
     if (err instanceof CategoryNotActiveError) {
@@ -378,5 +389,162 @@ export const deleteNoteHandler = async (
     res.status(500).json({
       error: { code: 'SERVER_ERROR', message: 'An unexpected error occurred' },
     });
+  }
+};
+
+/**
+ * PATCH /api/notes/{id}
+ * Partially updates an existing note for the authenticated user
+ *
+ * Path Parameters:
+ * - id: required UUID of the note to update
+ *
+ * Request Body (all fields optional):
+ * - category_id: optional UUID of an active category (if provided)
+ * - title: optional string, max 255 characters (can be null)
+ * - content: optional non-empty string, max 1000 characters
+ *
+ * Success Response:
+ * - 200 OK: Updated NoteDto
+ *
+ * Error Responses:
+ * - 400: Path or body validation errors
+ * - 401: Missing/invalid authentication
+ * - 403: Category not active in user preferences (when category_id provided)
+ * - 404: Note not found or user doesn't own it
+ * - 422: Category validation errors (when category_id provided)
+ * - 500: Server error
+ */
+export const updateNoteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // 1. Ensure authenticated
+    if (!req.auth) {
+      const errorResponse: ErrorResponseDto = {
+        error: { code: 'JWT_INVALID', message: 'Invalid credentials' },
+      };
+      res.status(401).json(errorResponse);
+      return;
+    }
+
+    // 2. Validate path parameter
+    let validatedParam;
+    try {
+      validatedParam = UpdateNoteParamSchema.parse(req.params);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        const details = Object.fromEntries(
+          validationError.errors.map((err) => [err.path.join('.'), err.message])
+        );
+        const errorResponse: ErrorResponseDto = {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid note ID format',
+            details,
+          },
+        };
+        res.status(400).json(errorResponse);
+        return;
+      }
+      throw validationError;
+    }
+
+    // 3. Validate request body (all fields optional for PATCH)
+    let validatedBody;
+    try {
+      validatedBody = UpdateNoteCommandSchema.parse(req.body);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        const details = Object.fromEntries(
+          validationError.errors.map((err) => [err.path.join('.'), err.message])
+        );
+        const errorResponse: ErrorResponseDto = {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Request body validation failed',
+            details,
+          },
+        };
+        res.status(400).json(errorResponse);
+        return;
+      }
+      throw validationError;
+    }
+
+    // 4. Check that at least one field is provided for update
+    if (!validatedBody.category_id && !validatedBody.title && !validatedBody.content) {
+      const errorResponse: ErrorResponseDto = {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'At least one field must be provided for update',
+          details: {
+            body: 'Provide at least one of: category_id, title, or content'
+          },
+        },
+      };
+      res.status(400).json(errorResponse);
+      return;
+    }
+
+    const userId = req.auth.userId;
+    const noteId = validatedParam.id;
+    const jwt = req.auth.jwt;
+
+    // 5. Create user-scoped client with JWT for RLS enforcement
+    const userClient = createClient<Database>(supabaseUrl, jwt);
+    const notesService = new NotesService(userClient);
+
+    // 6. Call service to update note
+    const updatedNote = await notesService.updateNote(userId, noteId, validatedBody);
+
+    // 7. Return updated note with 200 OK
+    res.status(200).json(updatedNote);
+  } catch (err) {
+    // Handle specific service errors with appropriate HTTP status codes
+    if (err instanceof CategoryNotFoundError) {
+      const errorResponse: ErrorResponseDto = {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Request validation failed',
+          details: {
+            category_id: 'The specified category does not exist',
+          },
+        },
+      };
+      res.status(422).json(errorResponse);
+      return;
+    }
+
+    if (err instanceof CategoryNotActiveError) {
+      const errorResponse: ErrorResponseDto = {
+        error: {
+          code: 'CATEGORY_NOT_ACTIVE',
+          message: 'The specified category is not active in your preferences',
+        },
+      };
+      res.status(403).json(errorResponse);
+      return;
+    }
+
+    if (err instanceof NoteNotFoundError) {
+      const errorResponse: ErrorResponseDto = {
+        error: {
+          code: 'NOTE_NOT_FOUND',
+          message: 'Note not found',
+        },
+      };
+      res.status(404).json(errorResponse);
+      return;
+    }
+
+    // Generic error handling
+    console.error('updateNoteHandler error:', err);
+    const errorResponse: ErrorResponseDto = {
+      error: { code: 'SERVER_ERROR', message: 'An unexpected error occurred' },
+    };
+    res.status(500).json(errorResponse);
   }
 };
