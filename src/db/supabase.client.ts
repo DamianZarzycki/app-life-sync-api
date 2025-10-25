@@ -13,4 +13,3 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 // Service client for server-side operations with elevated privileges
 export const supabaseClient = createClient<Database>(supabaseUrl, supabaseServiceKey);
-

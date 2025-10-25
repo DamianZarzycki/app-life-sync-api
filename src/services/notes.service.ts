@@ -1,8 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import type {
-  Database,
-  Tables,
-} from '../db/database.types.js';
+import type { Database, Tables } from '../db/database.types.js';
 import type {
   UUID,
   NoteDto,
@@ -68,7 +65,7 @@ export class NotesService {
 
   /**
    * Retrieve paginated list of notes for authenticated user with optional filtering
-   * 
+   *
    * @param userId - UUID of the authenticated user
    * @param query - ListNotesQuery with optional filters (category_id, from, to, include_deleted, sort, limit, offset)
    * @returns ListNotesResponseDto with paginated notes and metadata
@@ -98,10 +95,7 @@ export class NotesService {
       .select('id', { count: 'exact' })
       .eq('user_id', userId);
 
-    let dataQuery = this.userClient
-      .from('notes')
-      .select('*')
-      .eq('user_id', userId);
+    let dataQuery = this.userClient.from('notes').select('*').eq('user_id', userId);
 
     // Apply category filter if provided
     if (categoryIdArray.length > 0) {
@@ -157,13 +151,13 @@ export class NotesService {
 
   /**
    * Create a new note with validation
-   * 
+   *
    * Business Logic:
    * 1. Verify category exists in the database
    * 2. Verify category is active in user preferences
    * 3. Check that daily per-category limit is not exceeded
    * 4. Insert the note
-   * 
+   *
    * @param userId - UUID of the authenticated user
    * @param command - CreateNoteCommand with category_id, title, and content
    * @returns Created NoteDto
@@ -227,7 +221,11 @@ export class NotesService {
     // Step 4: Count notes created today for this category
     const { startOfToday, endOfToday } = this.getTodayBoundariesInTimezone(timezone);
 
-    const { data: notesToday, error: countError, count: countValue } = await this.userClient
+    const {
+      data: notesToday,
+      error: countError,
+      count: countValue,
+    } = await this.userClient
       .from('notes')
       .select('id', { count: 'exact' })
       .eq('user_id', userId)
@@ -274,10 +272,10 @@ export class NotesService {
 
   /**
    * Retrieve a single note by ID for the authenticated user
-   * 
+   *
    * Enforces ownership through user-scoped client (RLS)
    * Excludes soft-deleted notes by default
-   * 
+   *
    * @param userId - UUID of the authenticated user
    * @param noteId - UUID of the note to retrieve
    * @returns NoteDto if note exists and user owns it
@@ -308,9 +306,177 @@ export class NotesService {
   }
 
   /**
+   * Soft-delete a note by ID for the authenticated user
+   *
+   * Sets deleted_at timestamp to mark note as deleted without physical removal
+   * Enforces user ownership through RLS and explicit verification
+   *
+   * @param userId - UUID of the authenticated user
+   * @param noteId - UUID of the note to delete
+   * @returns void (on success)
+   * @throws NoteNotFoundError if note doesn't exist or user doesn't own it
+   * @throws Error for unexpected database errors
+   */
+  async deleteNoteById(userId: UUID, noteId: UUID): Promise<void> {
+    // Step 1: Verify note exists and user owns it
+    const { data: note, error: getError } = await this.userClient
+      .from('notes')
+      .select('id, user_id')
+      .eq('id', noteId)
+      .is('deleted_at', null)
+      .single();
+
+    if (getError) {
+      // PGRST116 is Supabase's error code for "no rows returned"
+      if (getError.code === 'PGRST116') {
+        throw new NoteNotFoundError(noteId);
+      }
+      throw new Error(`Failed to retrieve note: ${getError.message}`);
+    }
+
+    if (!note) {
+      throw new NoteNotFoundError(noteId);
+    }
+
+    // Defense-in-depth: Explicitly verify user ownership
+    // (RLS already enforces this, but we verify for extra safety)
+    if (note.user_id !== userId) {
+      throw new NoteNotFoundError(noteId);
+    }
+
+    // Step 2: Soft-delete the note
+    const { error: updateError } = await this.userClient
+      .from('notes')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', noteId);
+
+    if (updateError) {
+      throw new Error(`Failed to delete note: ${updateError.message}`);
+    }
+  }
+
+  /**
+   * Update an existing note with new values (partial update)
+   *
+   * Business Logic:
+   * 1. Verify note exists and user owns it
+   * 2. If category_id provided: verify category exists and is in active_categories
+   * 3. Build update object with only provided fields
+   * 4. Update the note
+   *
+   * @param userId - UUID of the authenticated user
+   * @param noteId - UUID of the note to update
+   * @param command - UpdateNoteCommand with optional category_id, title, and content
+   * @returns Updated NoteDto
+   * @throws NoteNotFoundError if note doesn't exist or user doesn't own it
+   * @throws CategoryNotFoundError if category doesn't exist (when category_id provided)
+   * @throws CategoryNotActiveError if category is not in user's active list (when category_id provided)
+   * @throws Error for unexpected database errors
+   */
+  async updateNote(userId: UUID, noteId: UUID, command: any): Promise<NoteDto> {
+    const { category_id: categoryId, title, content } = command;
+
+    // Step 1: Verify note exists and user owns it
+    const { data: note, error: getNoteError } = await this.userClient
+      .from('notes')
+      .select('id, user_id, category_id')
+      .eq('id', noteId)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (getNoteError) {
+      throw new Error(`Failed to retrieve note: ${getNoteError.message}`);
+    }
+
+    if (!note) {
+      throw new NoteNotFoundError(noteId);
+    }
+
+    // Defense-in-depth: Explicitly verify user ownership
+    // (RLS already enforces this, but we verify for extra safety)
+    if (note.user_id !== userId) {
+      throw new NoteNotFoundError(noteId);
+    }
+
+    // Step 2: If category_id is provided, verify it exists and is active
+    if (categoryId) {
+      // Verify category exists
+      const { data: categoryExists, error: categoryError } = await this.userClient
+        .from('categories')
+        .select('id')
+        .eq('id', categoryId)
+        .maybeSingle();
+
+      if (categoryError) {
+        throw new Error(`Failed to verify category: ${categoryError.message}`);
+      }
+
+      if (!categoryExists) {
+        throw new CategoryNotFoundError(categoryId);
+      }
+
+      // Fetch user's active_categories from preferences
+      const { data: preferences, error: prefError } = await this.userClient
+        .from('preferences')
+        .select('active_categories')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (prefError) {
+        throw new Error(`Failed to fetch preferences: ${prefError.message}`);
+      }
+
+      if (!preferences) {
+        throw new Error('User preferences not found');
+      }
+
+      // Verify category is in active_categories
+      const activeCategoryIds = (preferences.active_categories || []) as string[];
+      if (!activeCategoryIds.includes(categoryId)) {
+        throw new CategoryNotActiveError(categoryId);
+      }
+    }
+
+    // Step 3: Build update object with only provided fields
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (categoryId !== undefined) {
+      updateData.category_id = categoryId;
+    }
+
+    if (title !== undefined) {
+      updateData.title = title || null;
+    }
+
+    if (content !== undefined) {
+      updateData.content = content;
+    }
+
+    // Step 4: Update the note
+    const { data: updatedNote, error: updateError } = await this.userClient
+      .from('notes')
+      .update(updateData)
+      .eq('id', noteId)
+      .select()
+      .single();
+
+    if (updateError) {
+      throw new Error(`Failed to update note: ${updateError.message}`);
+    }
+
+    if (!updatedNote) {
+      throw new Error('Note update returned no data');
+    }
+
+    return updatedNote as NoteDto;
+  }
+
+  /**
    * Helper: Calculate today's date boundaries in user's timezone
    * Returns ISO 8601 datetime strings for start and end of today
-   * 
+   *
    * @param timezone - IANA timezone string (e.g., 'America/New_York', 'UTC')
    * @returns Object with startOfToday and endOfToday as ISO 8601 strings
    */

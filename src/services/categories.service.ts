@@ -5,7 +5,7 @@ import { supabaseClient } from '../db/supabase.client.js';
 
 /**
  * CategoriesService handles retrieval and filtering of categories
- * 
+ *
  * This service is public-facing with no RLS enforcement needed since
  * categories are read-only and accessible to all users
  */
@@ -14,13 +14,11 @@ export class CategoriesService {
    * Initialize service with Supabase client
    * @param adminClient - Admin Supabase client for category queries (no RLS needed)
    */
-  constructor(
-    private adminClient: SupabaseClient<Database> = supabaseClient
-  ) {}
+  constructor(private adminClient: SupabaseClient<Database> = supabaseClient) {}
 
   /**
    * List all categories with filtering, sorting, and pagination
-   * 
+   *
    * @param query - Query parameters with active filter, sort order, and pagination
    * @returns Promise resolving to paginated categories response
    * @throws Error on database failure (logged and re-thrown as generic 500 error)
@@ -40,10 +38,7 @@ export class CategoriesService {
       categoryQuery = categoryQuery.order('name', { ascending: isAscending });
 
       // Apply pagination
-      categoryQuery = categoryQuery.range(
-        query.offset,
-        query.offset + query.limit - 1
-      );
+      categoryQuery = categoryQuery.range(query.offset, query.offset + query.limit - 1);
 
       // Execute query
       const { data, error, count } = await categoryQuery;

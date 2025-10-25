@@ -16,7 +16,7 @@ export class ProfileNotFoundError extends Error {
 /**
  * ProfileService handles all user profile operations
  * Manages retrieval and updates of user profile information via Supabase
- * 
+ *
  * Uses user-scoped Supabase clients to enforce Row-Level Security (RLS)
  * ensuring users can only access their own profile data
  */
@@ -29,7 +29,7 @@ export class ProfileService {
 
   /**
    * Retrieve the authenticated user's profile from the database
-   * 
+   *
    * @param userId - UUID of the authenticated user
    * @returns Promise<ProfileDto> User's profile information
    * @throws ProfileNotFoundError if profile record doesn't exist
@@ -63,13 +63,13 @@ export class ProfileService {
 
   /**
    * Update the authenticated user's profile in the database
-   * 
+   *
    * Currently supports updating:
    * - timezone: User's preferred timezone for reports and scheduling
-   * 
+   *
    * Updated fields:
    * - updated_at: Automatically set by database trigger to current timestamp
-   * 
+   *
    * @param userId - UUID of the authenticated user
    * @param command - UpdateProfileCommand with new profile values
    * @returns Promise<ProfileDto> Updated user profile information

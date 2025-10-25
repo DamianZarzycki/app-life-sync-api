@@ -16,11 +16,7 @@ import type { ErrorResponseDto } from '../types.js';
  * Constraint errors: values out of range, invalid enum values
  */
 function isStructuralError(error: ZodError): boolean {
-  return error.errors.some(
-    (e) =>
-      e.code === 'invalid_type' ||
-      e.code === 'unrecognized_keys'
-  );
+  return error.errors.some((e) => e.code === 'invalid_type' || e.code === 'unrecognized_keys');
 }
 
 /**

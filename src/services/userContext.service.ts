@@ -15,7 +15,11 @@ export class UserContextService {
   /**
    * Build MeResponseDto ignoring RLS (using service key) – suitable for early development.
    */
-  async getMe(auth: { userId: string; email: string; emailVerified: boolean }): Promise<MeResponseDto> {
+  async getMe(auth: {
+    userId: string;
+    email: string;
+    emailVerified: boolean;
+  }): Promise<MeResponseDto> {
     // Fetch existence of profile
     const { data: profileData, error: profileError } = await this.adminClient
       .from('profiles')

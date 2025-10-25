@@ -8,10 +8,9 @@ import type { DeliveryChannel } from '../types.js';
 export const UpdatePreferencesCommandSchema = z
   .object({
     active_categories: z
-      .array(
-        z.string().uuid('active_categories must contain valid UUIDs'),
-        { required_error: 'active_categories is required' }
-      )
+      .array(z.string().uuid('active_categories must contain valid UUIDs'), {
+        required_error: 'active_categories is required',
+      })
       .max(3, { message: 'active_categories must have a maximum of 3 categories' })
       .default([]),
 
@@ -30,15 +29,16 @@ export const UpdatePreferencesCommandSchema = z
     preferred_delivery_channels: z
       .array(
         z.enum(['in_app', 'email'] as const, {
-          errorMap: () => ({ message: 'preferred_delivery_channels must contain only "in_app" or "email"' }),
+          errorMap: () => ({
+            message: 'preferred_delivery_channels must contain only "in_app" or "email"',
+          }),
         }),
         { required_error: 'preferred_delivery_channels is required' }
       )
       .nonempty({ message: 'preferred_delivery_channels must have at least one channel' })
-      .refine(
-        (channels) => new Set(channels).size === channels.length,
-        { message: 'preferred_delivery_channels must not contain duplicate values' }
-      ),
+      .refine((channels) => new Set(channels).size === channels.length, {
+        message: 'preferred_delivery_channels must not contain duplicate values',
+      }),
 
     email_unsubscribed_at: z
       .string({ required_error: 'email_unsubscribed_at is required' })

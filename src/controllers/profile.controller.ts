@@ -8,19 +8,15 @@ import type { ErrorResponseDto } from '../types.js';
 
 /**
  * Helper function to determine if a Zod error is structural (400) or constraint (422)
- * 
+ *
  * Structural errors: Missing required fields, wrong types, unrecognized keys
  * These represent client mistakes in request format
- * 
+ *
  * Constraint errors: Values out of range, invalid enum values, custom validation failures
  * These represent semantically invalid but syntactically correct data
  */
 function isStructuralError(error: ZodError): boolean {
-  return error.errors.some(
-    (e) =>
-      e.code === 'invalid_type' ||
-      e.code === 'unrecognized_keys'
-  );
+  return error.errors.some((e) => e.code === 'invalid_type' || e.code === 'unrecognized_keys');
 }
 
 /**
@@ -39,10 +35,10 @@ function extractZodErrors(error: ZodError): Record<string, string> {
 /**
  * Handler for GET /api/profile
  * Retrieves the authenticated user's profile information
- * 
+ *
  * Requires valid JWT token in Authorization header
  * Uses user-scoped Supabase client to enforce RLS
- * 
+ *
  * @param req - Express request with authenticated user
  * @param res - Express response object
  * @returns 200 OK with ProfileDto, or error response
@@ -101,11 +97,11 @@ export const getProfileHandler = async (req: Request, res: Response): Promise<vo
 /**
  * Handler for PUT /api/profile
  * Updates the authenticated user's profile (timezone only)
- * 
+ *
  * Requires valid JWT token in Authorization header
  * Validates request body with Zod schema
  * Uses user-scoped Supabase client to enforce RLS
- * 
+ *
  * @param req - Express request with authenticated user and JSON body
  * @param res - Express response object
  * @returns 200 OK with updated ProfileDto, or error response
@@ -138,9 +134,7 @@ export const updateProfileHandler = async (req: Request, res: Response): Promise
         const errorResponse: ErrorResponseDto = {
           error: {
             code: 'VALIDATION_ERROR',
-            message: isStructural
-              ? 'Request body validation failed'
-              : 'Profile validation failed',
+            message: isStructural ? 'Request body validation failed' : 'Profile validation failed',
             details,
           },
         };

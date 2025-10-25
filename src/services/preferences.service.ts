@@ -77,7 +77,10 @@ export class PreferencesService {
    * @throws InvalidCategoriesError if any referenced categories don't exist
    * @throws Error for database or unexpected errors
    */
-  async updatePreferences(userId: UUID, command: UpdatePreferencesCommand): Promise<PreferencesDto> {
+  async updatePreferences(
+    userId: UUID,
+    command: UpdatePreferencesCommand
+  ): Promise<PreferencesDto> {
     // Validate that all active categories exist in the database
     await this.validateCategories(command.active_categories);
 

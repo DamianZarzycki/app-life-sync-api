@@ -19,16 +19,16 @@ function extractZodErrors(error: ZodError): Record<string, string> {
 
 /**
  * Handler for GET /api/categories
- * 
+ *
  * Public endpoint for retrieving a paginated list of categories
  * with filtering and sorting support.
- * 
+ *
  * Query Parameters:
  * - active (boolean, default: true) - Filter by active status
  * - sort (enum, default: 'name_asc') - Sort by name ascending or descending
  * - limit (integer 1-100, default: 20) - Pagination limit
  * - offset (integer >=0, default: 0) - Pagination offset
- * 
+ *
  * @param req - Express request with query parameters
  * @param res - Express response object
  * @returns 200 OK with ListCategoriesResponseDto, 400 on validation error, 500 on server error

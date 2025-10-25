@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { listNotesHandler, createNoteHandler, getNoteHandler, deleteNoteHandler } from '../controllers/notes.controller.js';
+import { listNotesHandler, createNoteHandler, getNoteHandler, deleteNoteHandler, updateNoteHandler } from '../controllers/notes.controller.js';
 
 const router = Router();
 
@@ -30,6 +30,18 @@ router.get('/:id', authMiddleware, (req: Request, res: Response, next: NextFunct
  */
 router.post('/', authMiddleware, (req: Request, res: Response, next: NextFunction) =>
   createNoteHandler(req, res, next)
+);
+
+/**
+ * PATCH /api/notes/{id}
+ * Partially updates an existing note for the authenticated user (title, content, category)
+ * All fields optional - only provided fields will be updated
+ * Enforces active category constraint when category_id is provided
+ * Requires: Authorization header with Bearer token
+ * Response: Updated NoteDto on success, error on validation/authorization failure
+ */
+router.patch('/:id', authMiddleware, (req: Request, res: Response, next: NextFunction) =>
+  updateNoteHandler(req, res, next)
 );
 
 /**

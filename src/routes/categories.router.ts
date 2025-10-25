@@ -3,16 +3,16 @@ import { listCategoriesHandler } from '../controllers/categories.controller.js';
 
 /**
  * Router for categories endpoints
- * 
+ *
  * Public endpoint - no authentication middleware needed
  */
 const router = Router();
 
 /**
  * GET /api/categories
- * 
+ *
  * Retrieve a paginated list of categories with optional filtering and sorting
- * 
+ *
  * Query Parameters:
  * - active (boolean, default: true) - Filter by active status
  * - sort (enum, default: 'name_asc') - Sort by name ascending or descending

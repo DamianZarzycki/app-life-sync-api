@@ -809,7 +809,7 @@ const VALID_TIMEZONES = [
 /**
  * Schema for updating user profile
  * Validates the timezone field with appropriate constraints and custom error messages
- * 
+ *
  * Structural errors (missing field, wrong type) → 400 Bad Request
  * Constraint errors (invalid timezone value) → 422 Unprocessable Entity
  */
@@ -818,10 +818,9 @@ export const UpdateProfileCommandSchema = z
     timezone: z
       .string({ required_error: 'timezone is required' })
       .min(1, { message: 'timezone cannot be empty' })
-      .refine(
-        (tz) => VALID_TIMEZONES.includes(tz),
-        { message: 'timezone must be a valid IANA timezone' }
-      ),
+      .refine((tz) => VALID_TIMEZONES.includes(tz), {
+        message: 'timezone must be a valid IANA timezone',
+      }),
   })
   .strict();
 
