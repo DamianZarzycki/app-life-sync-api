@@ -54,5 +54,5 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Server WEWEWE running on http://localhost:${PORT}`);
+  console.log(`✅ LifeSync API Server running on http://localhost:${PORT}`);
 });
