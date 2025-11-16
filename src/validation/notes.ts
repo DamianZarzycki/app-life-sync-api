@@ -167,3 +167,39 @@ export const UpdateNoteCommandSchema = z.object({
 });
 
 export type UpdateNoteCommand = z.infer<typeof UpdateNoteCommandSchema>;
+
+/**
+ * Schema for validating PUT /api/notes/{id} request body (full replacement update)
+ *
+ * Validates:
+ * - category_id: required UUID of an active category
+ * - title: required but can be null, max 255 characters
+ * - content: required non-empty string, max 1000 characters
+ *
+ * All fields are REQUIRED for PUT operations (full replacement semantics)
+ */
+export const PutNoteCommandSchema = z.object({
+  category_id: z
+    .string({ required_error: 'category_id is required' })
+    .uuid('category_id must be a valid UUID'),
+
+  title: z
+    .union([
+      z
+        .string()
+        .max(255, { message: 'title must not exceed 255 characters' })
+        .transform((v) => (v === '' ? null : v)),
+      z.null(),
+    ])
+    .default(null)
+    .refine((val) => val === null || (typeof val === 'string' && val.length <= 255), {
+      message: 'title must be null or a string with max 255 characters',
+    }),
+
+  content: z
+    .string({ required_error: 'content is required' })
+    .min(1, { message: 'content must not be empty' })
+    .max(1000, { message: 'content must not exceed 1000 characters' }),
+});
+
+export type PutNoteCommand = z.infer<typeof PutNoteCommandSchema>;
