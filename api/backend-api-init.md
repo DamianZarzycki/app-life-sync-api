@@ -57,11 +57,7 @@ export interface RequestWithSupabase extends Request {
   supabase: typeof supabaseClient;
 }
 
-export const supabaseMiddleware = (
-  req: RequestWithSupabase,
-  res: Response,
-  next: NextFunction
-) => {
+export const supabaseMiddleware = (req: RequestWithSupabase, res: Response, next: NextFunction) => {
   req.supabase = supabaseClient;
   next();
 };
@@ -130,16 +126,13 @@ Once the middleware is set up, you can access the Supabase client in any route h
 ```ts
 app.get('/api/users', async (req, res) => {
   try {
-    const { data, error } = await req.supabase
-      .from('users')
-      .select('*');
-    
+    const { data, error } = await req.supabase.from('users').select('*');
+
     if (error) throw error;
-    
+
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 ```
-

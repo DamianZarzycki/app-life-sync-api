@@ -21,6 +21,18 @@ export const SignInRequestSchema = z.object({
 
 export type SignInRequest = z.infer<typeof SignInRequestSchema>;
 
+// Zod schema for sign-up request
+export const SignUpRequestSchema = z.object({
+  email: z
+    .string({ required_error: 'email is required' })
+    .email('email must be a valid email address'),
+  password: z
+    .string({ required_error: 'password is required' })
+    .min(1, 'password must not be empty'),
+});
+
+export type SignUpRequest = z.infer<typeof SignUpRequestSchema>;
+
 // Zod schema for creating a note
 export const CreateNoteRequestSchema = z.object({
   category_id: z

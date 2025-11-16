@@ -10,13 +10,22 @@ import categoriesRouter from './routes/categories.router.js';
 import reportsRouter from './routes/reports.router.js';
 import reportDeliveriesRouter from './routes/report-deliveries.router.js';
 import feedbackRouter from './routes/feedback.router.js';
+import dashboardRouter from './routes/dashboard.router.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+// CORS configuration with proper support for POST requests with Authorization headers
+app.use(cors({
+  origin: process.env.FRONTEND_URL || ['http://localhost:3000', 'http://localhost:4200'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+  maxAge: 3600,
+}));
+app.use(express.json({ limit: '10kb' }));
 app.use(supabaseMiddleware);
 
 // Routes
@@ -28,6 +37,7 @@ app.use('/api/categories', categoriesRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/report-deliveries', reportDeliveriesRouter);
 app.use('/api/feedback', feedbackRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -54,5 +64,5 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Server WEWEWE running on http://localhost:${PORT}`);
+  console.log(`✅ LifeSync API Server running on http://localhost:${PORT}`);
 });

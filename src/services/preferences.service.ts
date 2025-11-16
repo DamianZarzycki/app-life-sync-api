@@ -145,4 +145,81 @@ export class PreferencesService {
 
     return preferences as PreferencesDto;
   }
+
+  /**
+   * Create default user profile for a new user (called during sign-up)
+   * Inserts a profile record with default timezone
+   * MUST be called BEFORE createDefaultPreferences due to foreign key constraint
+   *
+   * @param userId - UUID of the newly created user
+   * @param adminClient - Admin-scoped Supabase client to bypass RLS
+   * @returns Created profile data
+   * @throws Error if profile creation fails
+   */
+  static async createDefaultProfile(
+    userId: UUID,
+    adminClient: SupabaseClient<Database>
+  ): Promise<void> {
+    const { error } = await adminClient
+      .from('profiles')
+      .insert({
+        user_id: userId,
+        timezone: 'UTC', // Default timezone
+      });
+
+    if (error) {
+      throw new Error(`Failed to create profile: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create default user preferences for a new user (called during sign-up)
+   * Inserts a preferences record with sensible defaults
+   * NOTE: Must be called AFTER createDefaultProfile
+   *
+   * @param userId - UUID of the newly created user
+   * @param adminClient - Admin-scoped Supabase client to bypass RLS
+   * @returns Created PreferencesDto with default values
+   * @throws Error if preferences creation fails
+   */
+  static async createDefaultPreferences(
+    userId: UUID,
+    adminClient: SupabaseClient<Database>
+  ): Promise<PreferencesDto> {
+    // Fetch ALL categories (not just active) to populate active_categories
+    const { data: categories, error: categoryError } = await adminClient
+      .from('categories')
+      .select('id');
+
+    if (categoryError) {
+      throw new Error(`Failed to fetch categories: ${categoryError.message}`);
+    }
+
+    const activeCategoryIds = (categories ?? []).map((cat) => cat.id);
+    activeCategoryIds.length = 3;
+    // Insert preferences with default values
+    const { data: preferences, error } = await adminClient
+      .from('preferences')
+      .insert({
+        user_id: userId,
+        active_categories: activeCategoryIds, // All available categories by default
+        report_dow: 1, // Monday (1-7, where 1 = Monday)
+        report_hour: 8, // 8 AM UTC
+        preferred_delivery_channels: ['in_app', 'email'], // Both in-app and email delivery
+        max_daily_notes: 10, // Default: 10 notes per day
+        email_unsubscribed_at: null, // User hasn't unsubscribed
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create preferences: ${error.message}`);
+    }
+
+    if (!preferences) {
+      throw new Error('Failed to create preferences: no data returned');
+    }
+
+    return preferences as PreferencesDto;
+  }
 }

@@ -99,6 +99,37 @@ export const GenerateReportCommandSchema = z.object({
 export type GenerateReportCommand = z.infer<typeof GenerateReportCommandSchema>;
 
 /**
+ * Schema for generating report from user reflections
+ * Accepts reflections grouped by category name (e.g., "goals", "work", "personal")
+ */
+export const GenerateReportFromReflectionsSchema = z.record(
+  z.string(),
+  z
+    .array(
+      z.object({
+        title: z
+          .string()
+          .min(1, { message: 'Title is required' })
+          .max(200, { message: 'Title must be under 200 characters' }),
+        description: z
+          .string()
+          .min(1, { message: 'Description is required' })
+          .max(2000, { message: 'Description must be under 2000 characters' }),
+        date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/, {
+            message: 'Date must be in YYYY-MM-DD format',
+          }),
+      })
+    )
+    .min(1, { message: 'At least one reflection is required' })
+);
+
+export type GenerateReportFromReflectionsCommand = z.infer<
+  typeof GenerateReportFromReflectionsSchema
+>;
+
+/**
  * Schema for validating DELETE /api/reports/{id} path parameters
  *
  * Handles:
