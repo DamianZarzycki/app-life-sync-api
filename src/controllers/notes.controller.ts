@@ -10,7 +10,6 @@ import {
 import type { Database } from '../db/database.types.js';
 import {
   NotesService,
-  CategoryNotActiveError,
   DailyLimitExceededError,
   CategoryNotFoundError,
   NoteNotFoundError,
@@ -176,27 +175,12 @@ export const createNoteHandler = async (
     // 5. Return created note with 201 Created and Location header
     res.status(201).set('Location', `/api/notes/${createdNote.id}`).json(createdNote);
   } catch (err) {
-    // Handle specific service errors with appropriate HTTP status codes
-    if (err instanceof CategoryNotActiveError) {
-      res.status(403).json({
-        error: {
-          code: 'CATEGORY_NOT_ACTIVE',
-          message: 'The specified category is not active in your preferences',
-        },
-      });
-      return;
-    }
 
     if (err instanceof DailyLimitExceededError) {
-      res.status(409).json({
+      res.status(403).json({
         error: {
-          code: 'DAILY_LIMIT_REACHED',
-          message: 'Daily note limit reached for this category',
-          details: {
-            category_id: err.categoryId,
-            limit: err.limit,
-            count_today: err.countToday,
-          },
+          code: 'MAX_NOTES_FOR_CATEGORY_PER_DAY',
+          message: 'The specified category reached limit for notes per day',
         },
       });
       return;
@@ -515,17 +499,6 @@ export const updateNoteHandler = async (
         },
       };
       res.status(422).json(errorResponse);
-      return;
-    }
-
-    if (err instanceof CategoryNotActiveError) {
-      const errorResponse: ErrorResponseDto = {
-        error: {
-          code: 'CATEGORY_NOT_ACTIVE',
-          message: 'The specified category is not active in your preferences',
-        },
-      };
-      res.status(403).json(errorResponse);
       return;
     }
 

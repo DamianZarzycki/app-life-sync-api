@@ -150,9 +150,14 @@ export type DashboardQuery = {
   since?: string; // ISO date range start (default 4 weeks)
 };
 
+export type CategorySummaryDto = {
+  id: UUID;
+  name: string;
+  notes_count: number;
+};
+
 export type DashboardSummaryDto = {
-  active_categories: UUID[];
-  notes_count: Record<UUID, number>;
+  categories: CategorySummaryDto[];
   streak_days: number;
 };
 
