@@ -9,16 +9,6 @@ import type {
 } from '../types.js';
 
 /**
- * Custom error for when a category is not active in user preferences
- */
-export class CategoryNotActiveError extends Error {
-  constructor(public categoryId: UUID) {
-    super(`Category ${categoryId} is not active in user preferences`);
-    this.name = 'CategoryNotActiveError';
-  }
-}
-
-/**
  * Custom error for when daily limit is exceeded
  */
 export class DailyLimitExceededError extends Error {
@@ -162,7 +152,6 @@ export class NotesService {
    * @param command - CreateNoteCommand with category_id, title, and content
    * @returns Created NoteDto
    * @throws CategoryNotFoundError if category doesn't exist
-   * @throws CategoryNotActiveError if category is not in user's active list
    * @throws DailyLimitExceededError if daily limit is reached
    * @throws Error if database operations fail
    */
@@ -197,12 +186,6 @@ export class NotesService {
 
     if (!preferences) {
       throw new Error('User preferences not found');
-    }
-
-    // Verify category is in active_categories
-    const activeCategoryIds = (preferences.active_categories || []) as string[];
-    if (!activeCategoryIds.includes(categoryId)) {
-      throw new CategoryNotActiveError(categoryId);
     }
 
     // Step 3: Fetch user's timezone from profile
@@ -370,7 +353,6 @@ export class NotesService {
    * @returns Updated NoteDto
    * @throws NoteNotFoundError if note doesn't exist or user doesn't own it
    * @throws CategoryNotFoundError if category doesn't exist (when category_id provided)
-   * @throws CategoryNotActiveError if category is not in user's active list (when category_id provided)
    * @throws Error for unexpected database errors
    */
   async updateNote(userId: UUID, noteId: UUID, command: any): Promise<NoteDto> {
@@ -428,12 +410,6 @@ export class NotesService {
 
       if (!preferences) {
         throw new Error('User preferences not found');
-      }
-
-      // Verify category is in active_categories
-      const activeCategoryIds = (preferences.active_categories || []) as string[];
-      if (!activeCategoryIds.includes(categoryId)) {
-        throw new CategoryNotActiveError(categoryId);
       }
     }
 
