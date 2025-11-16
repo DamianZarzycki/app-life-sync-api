@@ -55,7 +55,7 @@ This service will:
 ```typescript
 constructor(
   private apiKey: string,
-  private baseUrl: string = 'https://openrouter.io/api/v1',
+  private baseUrl: string = 'https://openrouter.ai/api/v1',
   private timeout: number = 30000,
   private maxRetries: number = 3,
   private retryDelayMs: number = 1000
@@ -67,7 +67,7 @@ constructor(
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `apiKey` | string | Yes | N/A | OpenRouter API key (from environment variables) |
-| `baseUrl` | string | No | `https://openrouter.io/api/v1` | OpenRouter API base URL |
+| `baseUrl` | string | No | `https://openrouter.ai/api/v1` | OpenRouter API base URL |
 | `timeout` | number | No | 30000 | Request timeout in milliseconds |
 | `maxRetries` | number | No | 3 | Maximum number of retry attempts for failed requests |
 | `retryDelayMs` | number | No | 1000 | Initial delay between retries in milliseconds (exponential backoff) |
@@ -77,7 +77,7 @@ constructor(
 ```typescript
 const openRouterService = new OpenRouterService(
   process.env.OPENROUTER_API_KEY!,
-  process.env.OPENROUTER_BASE_URL || 'https://openrouter.io/api/v1',
+  process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
   30000,
   3,
   1000
@@ -88,7 +88,7 @@ const openRouterService = new OpenRouterService(
 
 ```bash
 OPENROUTER_API_KEY=your_api_key_here
-OPENROUTER_BASE_URL=https://openrouter.io/api/v1  # Optional, defaults shown
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1  # Optional, defaults shown
 OPENROUTER_APP_NAME=LifeSync                       # Optional, included in User-Agent
 ```
 
@@ -152,7 +152,7 @@ Send a chat completion request to OpenRouter and return the response. This is th
 
 ```typescript
 const response = await openRouterService.createChatCompletion({
-  model: 'google/gemini-2.5-flash',
+  model: 'openai/gpt-4o-mini',
   messages: [
     { role: 'system', content: 'You are a helpful life coach.' },
     { role: 'user', content: 'Analyze my week: Family time: Family time was great, Exercise: exercise was lacking, Relations: I felt like I really had great time with Grok, but I notieced he stopped asking me about my life.' }
@@ -1284,7 +1284,7 @@ export class OpenRouterService {
 
   constructor(
     apiKey: string,
-    baseUrl: string = 'https://openrouter.io/api/v1',
+    baseUrl: string = 'https://openrouter.ai/api/v1',
     timeout: number = 30000,
     maxRetries: number = 3,
     retryDelayMs: number = 1000
@@ -2087,7 +2087,7 @@ export function createOpenRouterService(): OpenRouterService {
 
   return new OpenRouterService(
     apiKey,
-    process.env.OPENROUTER_BASE_URL || 'https://openrouter.io/api/v1',
+    process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
     parseInt(process.env.OPENROUTER_TIMEOUT || '30000', 10),
     parseInt(process.env.OPENROUTER_MAX_RETRIES || '3', 10),
     parseInt(process.env.OPENROUTER_RETRY_DELAY || '1000', 10)
@@ -2209,7 +2209,7 @@ Create a `.env` file with the following:
 OPENROUTER_API_KEY=your_api_key_here
 
 # Optional (with defaults)
-OPENROUTER_BASE_URL=https://openrouter.io/api/v1
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_TIMEOUT=30000              # milliseconds
 OPENROUTER_MAX_RETRIES=3              # number of retries
 OPENROUTER_RETRY_DELAY=1000           # milliseconds
