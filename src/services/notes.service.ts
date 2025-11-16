@@ -43,6 +43,16 @@ export class NoteNotFoundError extends Error {
 }
 
 /**
+ * Custom error for when a category is not in the user's active categories
+ */
+export class CategoryNotActiveError extends Error {
+  constructor(public categoryId: UUID) {
+    super(`Category ${categoryId} is not in active categories`);
+    this.name = 'CategoryNotActiveError';
+  }
+}
+
+/**
  * NotesService handles notes operations
  * Manages listing, filtering, creating notes with business rule enforcement
  */
@@ -431,6 +441,112 @@ export class NotesService {
     }
 
     // Step 4: Update the note
+    const { data: updatedNote, error: updateError } = await this.userClient
+      .from('notes')
+      .update(updateData)
+      .eq('id', noteId)
+      .select()
+      .single();
+
+    if (updateError) {
+      throw new Error(`Failed to update note: ${updateError.message}`);
+    }
+
+    if (!updatedNote) {
+      throw new Error('Note update returned no data');
+    }
+
+    return updatedNote as NoteDto;
+  }
+
+  /**
+   * Update an existing note with full replacement (all fields required)
+   *
+   * Business Logic:
+   * 1. Verify note exists and user owns it
+   * 2. Verify category exists
+   * 3. Fetch user's active_categories from preferences
+   * 4. Verify category is in active_categories (enforces active category constraint)
+   * 5. Update all note fields
+   *
+   * @param userId - UUID of the authenticated user
+   * @param noteId - UUID of the note to update
+   * @param command - PutNoteCommand with required category_id, title, and content
+   * @returns Updated NoteDto
+   * @throws NoteNotFoundError if note doesn't exist or user doesn't own it
+   * @throws CategoryNotFoundError if category doesn't exist
+   * @throws CategoryNotActiveError if category is not in user's active_categories
+   * @throws Error for unexpected database errors
+   */
+  async putNote(userId: UUID, noteId: UUID, command: any): Promise<NoteDto> {
+    const { category_id: categoryId, title, content } = command;
+
+    // Step 1: Verify note exists and user owns it
+    const { data: note, error: getNoteError } = await this.userClient
+      .from('notes')
+      .select('id, user_id')
+      .eq('id', noteId)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (getNoteError) {
+      throw new Error(`Failed to retrieve note: ${getNoteError.message}`);
+    }
+
+    if (!note) {
+      throw new NoteNotFoundError(noteId);
+    }
+
+    // Defense-in-depth: Explicitly verify user ownership
+    // (RLS already enforces this, but we verify for extra safety)
+    if (note.user_id !== userId) {
+      throw new NoteNotFoundError(noteId);
+    }
+
+    // Step 2: Verify category exists
+    const { data: categoryExists, error: categoryError } = await this.userClient
+      .from('categories')
+      .select('id')
+      .eq('id', categoryId)
+      .maybeSingle();
+
+    if (categoryError) {
+      throw new Error(`Failed to verify category: ${categoryError.message}`);
+    }
+
+    if (!categoryExists) {
+      throw new CategoryNotFoundError(categoryId);
+    }
+
+    // Step 3: Fetch user's active_categories from preferences
+    const { data: preferences, error: prefError } = await this.userClient
+      .from('preferences')
+      .select('active_categories')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (prefError) {
+      throw new Error(`Failed to fetch preferences: ${prefError.message}`);
+    }
+
+    if (!preferences) {
+      throw new Error('User preferences not found');
+    }
+
+    // Step 4: Verify category is in active_categories
+    const activeCategoryIds = preferences.active_categories as UUID[];
+    if (!activeCategoryIds.includes(categoryId)) {
+      throw new CategoryNotActiveError(categoryId);
+    }
+
+    // Step 5: Update the note with all fields
+    const updateData = {
+      category_id: categoryId,
+      title: title || null,
+      content,
+      updated_at: new Date().toISOString(),
+    };
+
     const { data: updatedNote, error: updateError } = await this.userClient
       .from('notes')
       .update(updateData)

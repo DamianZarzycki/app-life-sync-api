@@ -6,6 +6,7 @@ import {
   GetNoteParamSchema,
   UpdateNoteParamSchema,
   UpdateNoteCommandSchema,
+  PutNoteCommandSchema,
 } from '../validation/notes.js';
 import type { Database } from '../db/database.types.js';
 import {
@@ -13,6 +14,7 @@ import {
   DailyLimitExceededError,
   CategoryNotFoundError,
   NoteNotFoundError,
+  CategoryNotActiveError,
 } from '../services/notes.service.js';
 import type { ErrorResponseDto } from '../types.js';
 import { z } from 'zod';
@@ -515,6 +517,155 @@ export const updateNoteHandler = async (
 
     // Generic error handling
     console.error('updateNoteHandler error:', err);
+    const errorResponse: ErrorResponseDto = {
+      error: { code: 'SERVER_ERROR', message: 'An unexpected error occurred' },
+    };
+    res.status(500).json(errorResponse);
+  }
+};
+
+/**
+ * PUT /api/notes/{id}
+ * Completely replaces an existing note for the authenticated user (all fields required)
+ *
+ * Path Parameters:
+ * - id: required UUID of the note to update
+ *
+ * Request Body (all fields REQUIRED):
+ * - category_id: required UUID of an active category
+ * - title: required but can be null, max 255 characters
+ * - content: required non-empty string, max 1000 characters
+ *
+ * Business Logic:
+ * 1. Validate path parameter and request body (all fields required)
+ * 2. Verify note exists and user owns it
+ * 3. Verify category exists
+ * 4. Verify category is in user's active_categories
+ * 5. Replace all note fields
+ *
+ * Success Response:
+ * - 200 OK: Updated NoteDto
+ *
+ * Error Responses:
+ * - 400: Path or body validation errors
+ * - 401: Missing/invalid authentication
+ * - 403: Category not active in user preferences
+ * - 404: Note not found or user doesn't own it
+ * - 422: Category doesn't exist or content constraint violation
+ * - 500: Server error
+ */
+export const putNoteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // 1. Ensure authenticated
+    if (!req.auth) {
+      const errorResponse: ErrorResponseDto = {
+        error: { code: 'JWT_INVALID', message: 'Invalid credentials' },
+      };
+      res.status(401).json(errorResponse);
+      return;
+    }
+
+    // 2. Validate path parameter
+    let validatedParam;
+    try {
+      validatedParam = UpdateNoteParamSchema.parse(req.params);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        const details = Object.fromEntries(
+          validationError.errors.map((err) => [err.path.join('.'), err.message])
+        );
+        const errorResponse: ErrorResponseDto = {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid note ID format',
+            details,
+          },
+        };
+        res.status(400).json(errorResponse);
+        return;
+      }
+      throw validationError;
+    }
+
+    // 3. Validate request body (all fields required for PUT)
+    let validatedBody;
+    try {
+      validatedBody = PutNoteCommandSchema.parse(req.body);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        const details = Object.fromEntries(
+          validationError.errors.map((err) => [err.path.join('.'), err.message])
+        );
+        const errorResponse: ErrorResponseDto = {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Request body validation failed',
+            details,
+          },
+        };
+        res.status(422).json(errorResponse);
+        return;
+      }
+      throw validationError;
+    }
+
+    const userId = req.auth.userId;
+    const noteId = validatedParam.id;
+    const jwt = req.auth.jwt;
+
+    // 4. Create user-scoped client with JWT for RLS enforcement
+    const userClient = createClient<Database>(supabaseUrl, jwt);
+    const notesService = new NotesService(userClient);
+
+    // 5. Call service to update note (PUT semantics - all fields required)
+    const updatedNote = await notesService.putNote(userId, noteId, validatedBody);
+
+    // 6. Return updated note with 200 OK
+    res.status(200).json(updatedNote);
+  } catch (err) {
+    // Handle specific service errors with appropriate HTTP status codes
+    if (err instanceof CategoryNotActiveError) {
+      const errorResponse: ErrorResponseDto = {
+        error: {
+          code: 'CATEGORY_NOT_ACTIVE',
+          message: 'The specified category is not active in your preferences',
+        },
+      };
+      res.status(403).json(errorResponse);
+      return;
+    }
+
+    if (err instanceof CategoryNotFoundError) {
+      const errorResponse: ErrorResponseDto = {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Request validation failed',
+          details: {
+            category_id: 'The specified category does not exist',
+          },
+        },
+      };
+      res.status(422).json(errorResponse);
+      return;
+    }
+
+    if (err instanceof NoteNotFoundError) {
+      const errorResponse: ErrorResponseDto = {
+        error: {
+          code: 'NOTE_NOT_FOUND',
+          message: 'Note not found',
+        },
+      };
+      res.status(404).json(errorResponse);
+      return;
+    }
+
+    // Generic error handling
+    console.error('putNoteHandler error:', err);
     const errorResponse: ErrorResponseDto = {
       error: { code: 'SERVER_ERROR', message: 'An unexpected error occurred' },
     };

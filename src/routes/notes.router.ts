@@ -6,6 +6,7 @@ import {
   getNoteHandler,
   deleteNoteHandler,
   updateNoteHandler,
+  putNoteHandler,
 } from '../controllers/notes.controller.js';
 
 const router = Router();
@@ -36,6 +37,18 @@ router.get('/:id', authMiddleware, (req: Request, res: Response, next: NextFunct
  */
 router.post('/', authMiddleware, (req: Request, res: Response, next: NextFunction) =>
   createNoteHandler(req, res, next)
+);
+
+/**
+ * PUT /api/notes/{id}
+ * Completely replaces an existing note for the authenticated user (all fields required)
+ * category_id, title, and content must all be provided
+ * Enforces that category_id is in user's active_categories
+ * Requires: Authorization header with Bearer token
+ * Response: Updated NoteDto on success, error on validation/authorization failure
+ */
+router.put('/:id', authMiddleware, (req: Request, res: Response, next: NextFunction) =>
+  putNoteHandler(req, res, next)
 );
 
 /**
