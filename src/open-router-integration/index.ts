@@ -44,7 +44,7 @@ export type {
  * @throws Error if OPENROUTER_API_KEY environment variable is not set
  */
 export function createOpenRouterService(): OpenRouterService {
-  const apiKey = process.env.OPENROUTER_API_KEY ?? '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';
+  const apiKey = process.env.OPENROUTER_API_KEY;
   console.log('apiKey:: ', apiKey);
   if (!apiKey) {
     throw new Error('OPENROUTER_API_KEY environment variable not set');
